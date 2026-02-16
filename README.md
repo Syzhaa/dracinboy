@@ -137,3 +137,31 @@ Buy me a coffee ☕
 ## License
 
 MIT License
+
+## Access from Mobile (Same Wi‑Fi)
+
+1. Ensure your computer and phone are connected to the same Wi‑Fi network.
+2. Install dependencies and start the server (server binds to LAN addresses by default):
+
+```bash
+npm install
+PORT=3000 node index.js
+```
+
+3. Find your computer LAN IP (one of these commands):
+
+```bash
+hostname -I
+# or
+ip addr show
+```
+
+4. Open the API from your phone's browser at:
+
+```
+http://<YOUR_COMPUTER_LAN_IP>:3000
+```
+
+Notes:
+- If you set `HOST` the server will bind to that address. By default it binds to `0.0.0.0` so the app is reachable on the LAN.
+- If a firewall is enabled on your computer, allow incoming connections to the chosen `PORT`.

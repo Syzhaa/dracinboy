@@ -2,19 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const NodeCache = require('node-cache');
 
-const { 
-    getDramaList, 
-    getLatestDrama, 
-    getRankDrama, 
-    getChannelDrama, 
-    getIndoDubbedDrama, 
+const {
+    getDramaList,
+    getLatestDrama,
+    getRankDrama,
+    getChannelDrama,
+    getIndoDubbedDrama,
     getAllDramas,
     fetchAllDramas,
     fetchAllDramasMultiLang,
     SUPPORTED_LANGUAGES,
-    scrapeEpisodes, 
-    searchDrama, 
-    searchSuggest 
+    scrapeEpisodes,
+    searchDrama,
+    searchSuggest
 } = require('./EnvielDracin');
 
 const app = express();
@@ -22,6 +22,7 @@ const cache = new NodeCache({ stdTTL: 300 });
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 const sendResponse = (res, result) => {
     if (result.status === 'success') {
@@ -76,7 +77,7 @@ app.get('/enviel/drama/indo', async (req, res) => {
 
 app.get('/enviel/drama/all', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50; 
+    const limit = parseInt(req.query.limit) || 50;
     const cacheKey = `drama_all_p${page}_l${limit}`;
 
     try {
@@ -91,12 +92,13 @@ app.get('/enviel/drama/all', async (req, res) => {
         }
 
         const result = await getAllDramas(page, limit);
-        
+
         if (result.status === 'success') {
             cache.set(cacheKey, result.data);
             res.json({
                 status: true,
                 message: 'Success',
+                total: result.total,
                 totalFetched: result.data.length,
                 data: result.data
             });
@@ -111,7 +113,7 @@ app.get('/enviel/drama/all', async (req, res) => {
 
 app.get('/enviel/drama/fetch-all', async (req, res) => {
     const cacheKey = 'drama_fetch_all';
-    
+
     try {
         const cachedData = cache.get(cacheKey);
         if (cachedData) {
@@ -124,7 +126,7 @@ app.get('/enviel/drama/fetch-all', async (req, res) => {
         }
 
         const result = await fetchAllDramas(20);
-        
+
         if (result.status === 'success') {
             cache.set(cacheKey, result.data, 600);
             res.json({
@@ -144,7 +146,7 @@ app.get('/enviel/drama/fetch-all', async (req, res) => {
 
 app.get('/enviel/drama/fetch-all-langs', async (req, res) => {
     const cacheKey = 'drama_fetch_all_langs';
-    
+
     try {
         const cachedData = cache.get(cacheKey);
         if (cachedData) {
@@ -159,7 +161,7 @@ app.get('/enviel/drama/fetch-all-langs', async (req, res) => {
         }
 
         const result = await fetchAllDramasMultiLang(20);
-        
+
         if (result.status === 'success') {
             cache.set(cacheKey, result, 600);
             res.json({
@@ -182,7 +184,7 @@ app.get('/enviel/drama/fetch-all-langs', async (req, res) => {
 app.get('/enviel/drama/search', async (req, res) => {
     const q = req.query.q;
     if (!q) return res.status(400).json({ status: false, message: 'Query param "q" is required' });
-    
+
     const page = parseInt(req.query.page) || 1;
     const size = parseInt(req.query.size) || 20;
     const result = await searchDrama(q, page, size);
@@ -192,7 +194,7 @@ app.get('/enviel/drama/search', async (req, res) => {
 app.get('/enviel/drama/suggest', async (req, res) => {
     const q = req.query.q;
     if (!q) return res.status(400).json({ status: false, message: 'Query param "q" is required' });
-    
+
     const result = await searchSuggest(q);
     sendResponse(res, result);
 });
@@ -200,7 +202,7 @@ app.get('/enviel/drama/suggest', async (req, res) => {
 app.get('/enviel/drama/episodes/:bookId', async (req, res) => {
     const bookId = req.params.bookId;
     const result = await scrapeEpisodes(bookId);
-    
+
     if (result.status === 'success') {
         res.json({
             status: true,
@@ -216,7 +218,7 @@ app.get('/enviel/drama/episodes/:bookId', async (req, res) => {
 app.get('/enviel/drama/detail/:bookId', async (req, res) => {
     const bookId = req.params.bookId;
     const cacheKey = `detail_${bookId}`;
-    
+
     try {
         const cachedData = cache.get(cacheKey);
         if (cachedData) {
@@ -228,7 +230,7 @@ app.get('/enviel/drama/detail/:bookId', async (req, res) => {
         }
 
         const result = await scrapeEpisodes(bookId);
-        
+
         if (result.status === 'success') {
             const data = {
                 id: bookId,
@@ -238,9 +240,9 @@ app.get('/enviel/drama/detail/:bookId', async (req, res) => {
                 totalEpisodes: result.total,
                 episodes: result.data
             };
-            
+
             cache.set(cacheKey, data, 3600);
-            
+
             res.json({
                 status: true,
                 message: 'Success',
@@ -250,14 +252,14 @@ app.get('/enviel/drama/detail/:bookId', async (req, res) => {
             throw new Error(result.message);
         }
 
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ status: false, message: e.message });
     }
 });
 
 app.get('/', (req, res) => {
-    res.json({ 
-        status: true, 
+    res.json({
+        status: true,
         message: 'Enviel Dramabox API is Running',
         version: '1.0.0',
         endpoints: [
@@ -281,7 +283,23 @@ module.exports = app;
 
 if (require.main === module) {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+    const HOST = process.env.HOST || '0.0.0.0';
+    app.listen(PORT, HOST, () => {
+        const os = require('os');
+        const ifaces = os.networkInterfaces();
+        const addresses = [];
+        for (const name of Object.keys(ifaces)) {
+            for (const iface of ifaces[name]) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    addresses.push(iface.address);
+                }
+            }
+        }
+        console.log('Server running:');
+        console.log(` - Local:   http://localhost:${PORT}`);
+        addresses.forEach(addr => console.log(` - Network: http://${addr}:${PORT}`));
+        if (HOST && HOST !== '0.0.0.0') {
+            console.log(`Bound to HOST=${HOST}`);
+        }
     });
 }
