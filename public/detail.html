@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Detail Drama - DramaShort</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: "#E50914", hover: "#b20710", light: "#ff4d4d" },
+                        light: { bg: "#ffffff", surface: "#f3f4f6", text: "#111827", muted: "#6b7280", border: "#e5e7eb" },
+                        dark: { bg: "#0f0f0f", surface: "#1a1a1a", text: "#f9fafb", muted: "#9ca3af", border: "#262626" }
+                    },
+                    fontFamily: { sans: ["Inter", "sans-serif"], display: ["Outfit", "sans-serif"] },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body { @apply font-sans antialiased transition-colors duration-300 bg-light-bg text-light-text; }
+            .dark body { @apply bg-dark-bg text-dark-text; }
+        }
+        @layer utilities {
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .glass { @apply backdrop-blur-md bg-white/70 border-white/20; }
+            .dark .glass { @apply bg-black/70 border-white/10; }
+            .nav-item-active { @apply bg-primary text-white shadow-lg shadow-primary/30; }
+            .nav-item-inactive { @apply text-light-muted hover:bg-light-surface hover:text-light-text dark:text-dark-muted dark:hover:bg-dark-surface dark:hover:text-dark-text; }
+        }
+        .material-symbols-rounded { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; transition: all 0.3s ease; }
+        .icon-filled { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+
+<body
+    class="bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text min-h-screen flex flex-col relative md:flex-row md:items-start transition-colors duration-300">
+
+    <!-- Sidebar (Consistent) -->
+    <aside
+        class="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-light-border dark:border-dark-border glass px-5 py-6 justify-between z-50">
+        <div>
+            <div class="px-2 mb-10">
+                <a href="index.html"
+                    class="font-display text-3xl font-extrabold text-primary flex items-center gap-2 tracking-tight">
+                    <span class="material-symbols-rounded text-4xl icon-filled">movie_filter</span>
+                    Drama<span class="text-light-text dark:text-dark-text">Short</span>
+                </a>
+            </div>
+            <nav class="flex flex-col gap-2">
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 nav-item-inactive"
+                    href="index.html">
+                    <span class="material-symbols-rounded">home</span>
+                    <span>Beranda</span>
+                </a>
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 nav-item-active"
+                    href="#">
+                    <span class="material-symbols-rounded icon-filled">info</span>
+                    <span>Detail Info</span>
+                </a>
+            </nav>
+        </div>
+        <div class="px-4 text-xs font-medium text-light-muted dark:text-dark-muted text-center opacity-60">
+            &copy; 2024 DramaShort
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col h-full min-h-screen relative w-full">
+        <!-- Header -->
+        <header
+            class="sticky top-0 z-40 glass border-b border-light-border dark:border-dark-border transition-all duration-300 w-full"
+            id="mainHeader">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 flex items-center justify-between gap-4">
+                <a href="index.html"
+                    class="md:hidden text-primary font-display font-bold text-xl flex items-center gap-1">
+                    <span class="material-symbols-rounded icon-filled">arrow_back</span>
+                    <span class="text-light-text dark:text-dark-text">Kembali</span>
+                </a>
+                <div class="flex-1"></div>
+                <button id="themeToggle"
+                    class="flex items-center justify-center size-10 rounded-full bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-all active:scale-95">
+                    <span class="material-symbols-rounded dark:hidden">light_mode</span>
+                    <span class="material-symbols-rounded hidden dark:block">dark_mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Detail Container -->
+        <main class="flex-1 p-0 md:p-8 w-full">
+            <div
+                class="max-w-6xl mx-auto bg-white dark:bg-dark-surface rounded-none md:rounded-3xl shadow-none md:shadow-2xl overflow-hidden min-h-[80vh] flex flex-col md:flex-row ring-1 ring-light-border dark:ring-white/5">
+
+                <!-- Cover Image & Mobile Header -->
+                <div
+                    class="relative w-full md:w-5/12 h-[50vh] md:h-auto bg-gray-200 dark:bg-gray-800 flex-shrink-0 group">
+                    <img id="detailCover" class="w-full h-full object-cover" src="" alt="Cover">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-white dark:md:to-dark-surface">
+                    </div>
+
+                    <!-- Content Overlay (Mobile only usually) -->
+                    <div class="absolute bottom-6 left-6 z-20 pr-6 md:hidden text-white">
+                        <h1 id="detailTitleMobile"
+                            class="text-3xl font-display font-bold leading-tight drop-shadow-md mb-2">Loading...</h1>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="bg-primary/90 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-md">FULL
+                                HD</span>
+                            <span id="episodeTotalMobile" class="text-xs font-medium text-white/80">0 Episodes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info & Episodes -->
+                <div class="p-6 md:p-10 flex-1 flex flex-col bg-white dark:bg-dark-surface">
+                    <div class="hidden md:block mb-6">
+                        <h1 id="detailTitleDesktop"
+                            class="text-4xl font-display font-extrabold text-light-text dark:text-white leading-tight mb-3">
+                            Loading...</h1>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span
+                                class="bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-wide">Premium</span>
+                            <span id="episodeTotalDesktop" class="text-light-muted dark:text-dark-muted font-medium">0
+                                Episodes</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-10">
+                        <h3
+                            class="font-bold text-xs text-light-muted dark:text-dark-muted uppercase tracking-wider mb-3">
+                            Sinopsis</h3>
+                        <p id="detailIntro"
+                            class="text-base text-light-text dark:text-gray-300 leading-relaxed opacity-90">
+                            Memuat informasi drama...
+                        </p>
+                    </div>
+
+                    <div class="flex-1">
+                        <div
+                            class="flex items-center justify-between mb-4 border-b border-light-border dark:border-white/5 pb-2">
+                            <h3
+                                class="font-bold text-sm text-light-text dark:text-dark-text uppercase tracking-wider flex items-center gap-2">
+                                <span class="material-symbols-rounded text-primary">play_circle</span>
+                                Daftar Episode
+                            </h3>
+                            <span class="text-xs text-light-muted dark:text-dark-muted" id="epCountBadge">0 Eps</span>
+                        </div>
+
+                        <div id="episodesGrid"
+                            class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-4">
+                            <!-- Episodes will be injected here -->
+                            <div class="col-span-full py-10 text-center text-sm text-light-muted dark:text-dark-muted">
+                                Memuat episode...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Reusing Player Modals from index.html (Hidden by default) -->
+    <!-- Video Modal (Cinema Mode) -->
+    <div id="videoModal"
+        class="fixed inset-0 z-[60] bg-black hidden flex items-center justify-center animate-in fade-in duration-300">
+        <button id="closeVideo"
+            class="absolute top-6 right-6 z-20 text-white/70 hover:text-white p-2 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all transform hover:rotate-90">
+            <span class="material-symbols-rounded text-3xl">close</span>
+        </button>
+        <div
+            class="w-full max-w-6xl aspect-video relative shadow-2xl ring-1 ring-white/10 rounded-xl overflow-hidden bg-black">
+            <video id="videoPlayer" class="w-full h-full object-contain" controls autoplay></video>
+        </div>
+    </div>
+
+    <!-- Immersive Mobile Player -->
+    <div id="immersivePlayer" class="fixed inset-0 z-[70] bg-black hidden font-sans">
+        <div id="immersiveFeed"
+            class="w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar relative bg-black"></div>
+        <div class="absolute top-0 left-0 w-full z-20 pt-12 px-5 flex justify-between items-center pointer-events-none">
+            <button id="closeImmersive"
+                class="text-white hover:scale-110 active:scale-95 transition-transform pointer-events-auto p-2 -ml-2">
+                <span class="material-symbols-rounded text-3xl drop-shadow-md">arrow_back_ios_new</span>
+            </button>
+            <div
+                class="flex bg-black/40 backdrop-blur-xl rounded-full px-5 py-1.5 border border-white/10 shadow-lg pointer-events-auto">
+                <span class="text-xs font-semibold tracking-wide text-white/90">Sedang Menonton</span>
+            </div>
+            <div class="w-8"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

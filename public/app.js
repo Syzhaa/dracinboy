@@ -10,40 +10,130 @@ let currentEpisodes = [];
 let currentEpisodeIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initial Load
-    loadCategory('featured');
+    // Theme Initialization
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
-    // Search Listener
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSearch(searchInput.value);
+    // Check saved theme
+    const savedTheme = localStorage.getItem('theme');
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme === 'dark' || (!savedTheme && systemTheme)) {
+        html.classList.add('dark');
+    } else {
+        html.classList.remove('dark');
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
     }
 
-    // Category Nav Listeners
-    document.querySelectorAll('.nav-filter').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const type = e.currentTarget.dataset.type;
-            if (type === currentCategory) return;
-            loadCategory(type);
-        });
-    });
+    // ROUTING LOGIC
+    const path = window.location.pathname;
+    const isDetailPage = path.includes('detail.html');
 
-    // Load More Listener
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-            if (!isLoading) {
-                currentPage++;
-                fetchData(currentCategory, true);
-            }
+    if (isDetailPage) {
+        // === DETAIL PAGE LOGIC ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookId = urlParams.get('id');
+
+        if (bookId) {
+            loadDetail(bookId);
+        } else {
+            window.location.href = 'index.html'; // Fallback
+        }
+
+        // Setup Player Close Listeners
+        const closeVideo = document.getElementById('closeVideo');
+        if (closeVideo) closeVideo.addEventListener('click', closeVideoModal);
+
+        const closeImmersive = document.getElementById('closeImmersive');
+        if (closeImmersive) closeImmersive.addEventListener('click', closeImmersivePlayer);
+
+    } else {
+        // === INDEX PAGE LOGIC ===
+        // Initial Load
+        loadCategory('featured');
+
+        // Check for Continue Watching
+        const lastDramaId = localStorage.getItem('lastDramaId');
+        const lastEpIndex = localStorage.getItem('lastEpIndex');
+
+        if (lastDramaId) {
+            fetch(`${API_BASE}/enviel/drama/detail/${lastDramaId}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status) {
+                        const data = result.data;
+                        const container = document.getElementById('continueWatchingContainer');
+                        const cover = document.getElementById('cwCover');
+                        const title = document.getElementById('cwTitle');
+                        const epIndex = document.getElementById('cwEpIndex');
+
+                        if (container && cover && title && epIndex) {
+                            cover.src = data.cover;
+                            title.textContent = data.title;
+                            // Display next episode if possible, or current
+                            const idx = lastEpIndex ? parseInt(lastEpIndex) + 1 : 1;
+                            epIndex.textContent = idx;
+
+                            container.classList.remove('hidden');
+                            container.onclick = () => {
+                                window.location.href = `detail.html?id=${lastDramaId}`;
+                            };
+                        }
+                    }
+                })
+                .catch(e => console.error("CW Error:", e));
+        }
+
+        // Search Listener
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSearch(searchInput.value);
+            });
+        }
+
+        // Category Nav Listeners
+        document.querySelectorAll('.nav-filter').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.currentTarget.dataset.type;
+                if (type === currentCategory) return;
+                loadCategory(type);
+            });
         });
+
+        // Load More Listener
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                if (!isLoading) {
+                    currentPage++;
+                    fetchData(currentCategory, true);
+                }
+            });
+        }
+
+        // Modal Close Listeners (Mobile & Desktop) - For Index Page Only
+        setupModalListeners();
     }
 
-    // Bottom Nav Listeners (Mobile) & Sidebar (Desktop)
+    // Bottom Nav Listeners (Mobile) & Sidebar (Desktop) - Common for both
     document.querySelectorAll('[data-target]').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // If on detail page, some links should redirect to index
+            if (isDetailPage) {
+                if (btn.closest('aside')) return; // Sidebar links are already <a> tags in html
+                // For mobile bottom nav
+                window.location.href = 'index.html';
+                return;
+            }
+
             e.preventDefault();
             const targetType = e.currentTarget.dataset.target;
 
@@ -53,30 +143,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadCategory('latest');
             } else if (targetType === 'all') {
                 loadCategory('all');
+            } else if (targetType === 'downloads') {
+                loadHistory(); // Load History instead of Downloads
             }
         });
     });
-
-    // Check for saved state (Deep Link / Refresh)
-    const savedDramaId = localStorage.getItem('lastDramaId');
-    const savedEpIndex = localStorage.getItem('lastEpIndex');
-
-    if (savedDramaId && savedEpIndex) {
-        // Fetch detail and open player directly
-        fetch(`${API_BASE}/enviel/drama/detail/${savedDramaId}`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.status) {
-                    currentEpisodes = result.data.episodes || [];
-                    openImmersivePlayer(parseInt(savedEpIndex) || 0, result.data);
-                }
-            })
-            .catch(e => console.error("Restore error:", e));
-    }
-
-    // Modal Close Listeners (Mobile & Desktop)
-    setupModalListeners();
 });
+
+function addToHistory(drama) {
+    let history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
+    // Remove if exists to re-add at top
+    history = history.filter(h => h.bookId !== drama.id);
+
+    // Add new entry
+    history.unshift({
+        bookId: drama.id,
+        title: drama.title,
+        cover: drama.cover,
+        chapterCount: drama.totalEpisodes || '??'
+    });
+
+    // Limit to 50 items
+    if (history.length > 50) history.pop();
+
+    localStorage.setItem('watchHistory', JSON.stringify(history));
+}
+
+function loadHistory() {
+    currentCategory = 'history';
+    updateNavUI('downloads'); // Highlight 'Koleksi'
+
+    const titleEl = document.getElementById('sectionTitle');
+    if (titleEl) titleEl.textContent = 'Riwayat Tontonan';
+
+    const history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
+    renderGrid(history);
+
+    const loadMoreBtn = document.getElementById('loadMoreContainer');
+    if (loadMoreBtn) loadMoreBtn.classList.add('hidden');
+}
 
 function setupModalListeners() {
     const modal = document.getElementById('detailModal');
@@ -125,20 +230,37 @@ function setupModalListeners() {
 
 function updateNavUI(type) {
     document.querySelectorAll('.nav-filter').forEach(b => {
-        b.classList.remove('text-primary', 'font-bold', 'bg-primary/10');
-        b.classList.add('text-slate-500', 'font-semibold');
-
-        // Remove old indicator if any (though we are using pills now)
-        const ind = b.querySelector('.indicator');
-        if (ind) ind.remove();
+        // Reset to inactive state
+        b.className = 'nav-filter py-1.5 px-4 rounded-full text-xs font-medium text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-dark-surface hover:text-light-text dark:hover:text-dark-text transition-all whitespace-nowrap';
 
         if (b.dataset.type === type) {
-            b.classList.remove('text-slate-500', 'font-semibold');
-            b.classList.add('text-primary', 'font-bold', 'bg-primary/10');
-        } else {
-            b.classList.add('hover:bg-slate-100', 'hover:text-secondary');
+            // Active State
+            b.className = 'nav-filter relative py-1.5 px-4 rounded-full text-xs font-bold bg-primary text-white shadow-md shadow-primary/20 transition-transform active:scale-95 whitespace-nowrap';
         }
     });
+
+    // Sidebar Active State
+    document.querySelectorAll('[data-target]').forEach(link => {
+        link.classList.remove('nav-item-active');
+        link.classList.add('nav-item-inactive');
+
+        if (link.dataset.target === type || (type === 'featured' && link.dataset.target === 'home')) {
+            link.classList.remove('nav-item-inactive');
+            link.classList.add('nav-item-active');
+        }
+    });
+
+    // Update Section Title
+    const titleMap = {
+        'featured': 'Untuk Anda',
+        'latest': 'Drama Terbaru',
+        'rank': 'Paling Populer',
+        'indo': 'Indonesian Dub',
+        'all': 'Semua Koleksi',
+        'search': 'Hasil Pencarian'
+    };
+    const titleEl = document.getElementById('sectionTitle');
+    if (titleEl && titleMap[type]) titleEl.textContent = titleMap[type];
 }
 
 function loadCategory(type) {
@@ -191,7 +313,7 @@ async function handleSearch(query) {
     showLoading();
     // Hide Categories active state for search
     currentCategory = 'search';
-    updateNavUI('');
+    updateNavUI('search');
 
     try {
         const res = await fetch(`${API_BASE}/enviel/drama/search?q=${query}`);
@@ -213,7 +335,12 @@ async function handleSearch(query) {
 
 function showLoading() {
     const grid = document.getElementById('dramaGrid');
-    if (grid) grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-400 w-full">Loading...</div>';
+    if (grid) grid.innerHTML = `
+        <div class="animate-pulse col-span-full py-20 flex flex-col items-center justify-center text-light-muted dark:text-dark-muted">
+            <span class="material-symbols-rounded text-4xl mb-2 animate-spin">data_usage</span>
+            <span class="text-sm font-medium">Memuat drama...</span>
+        </div>
+    `;
 }
 
 function renderGrid(items, append = false) {
@@ -223,105 +350,108 @@ function renderGrid(items, append = false) {
     if (!append) grid.innerHTML = '';
 
     if (items.length === 0 && !append) {
-        grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-400 w-full">No dramas found.</div>';
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-light-muted dark:text-dark-muted w-full">Tidak ada drama ditemukan.</div>';
         return;
     }
 
-    items.forEach(item => {
+    items.forEach((item, index) => {
         const card = document.createElement('div');
-        card.className = 'flex flex-col gap-2 cursor-pointer active:scale-95 transition-transform group fade-in';
+        // Premium Card Construction
+        card.className = 'group flex flex-col gap-2 cursor-pointer transition-transform duration-300 hover:-translate-y-1 fade-in';
+        card.style.animationDelay = `${index * 50}ms`; // Staggered animation
 
-        const badge = Math.random() > 0.5 ?
-            `<div class="absolute top-1.5 right-1.5 px-2 py-0.5 bg-primary text-white text-[9px] font-bold rounded-full shadow-sm">HD</div>` :
-            `<div class="absolute top-1.5 right-1.5 px-2 py-0.5 bg-secondary text-white text-[9px] font-bold rounded-full shadow-sm">HOT</div>`;
+        const isHD = Math.random() > 0.3;
+        const badge = isHD ?
+            `<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-primary/90 backdrop-blur-sm text-white text-[9px] font-bold rounded-md shadow-sm border border-white/10">HD</div>` :
+            `<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-secondary/90 backdrop-blur-sm text-white text-[9px] font-bold rounded-md shadow-sm border border-white/10">HOT</div>`;
 
         const epCount = item.chapterCount ? item.chapterCount : '??';
 
         card.innerHTML = `
-            <div class="relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm bg-white border-2 border-white group-hover:border-primary/20 group-hover:shadow-md transition-all">
-                <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+            <div class="relative aspect-[3/4] rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/20 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border group-hover:border-primary/50 transition-all">
+                <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                      src="${item.cover}" loading="lazy" alt="${item.title}">
+                
+                <!-- Overlay Gradient -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                
                 ${badge}
-                <div class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-secondary/80 backdrop-blur-sm text-white text-[9px] font-bold rounded">EP ${epCount}</div>
-                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white text-4xl drop-shadow-lg">play_circle</span>
+                
+                <div class="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                    <div class="px-1.5 py-0.5 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold rounded flex items-center gap-1 border border-white/10">
+                        <span class="material-symbols-rounded text-[10px]">movie</span>
+                        ${epCount}
+                    </div>
+                </div>
+
+                <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center">
+                    <span class="material-symbols-rounded text-white text-5xl drop-shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300 icon-filled">play_circle</span>
                 </div>
             </div>
-            <h3 class="text-[11px] md:text-sm font-bold leading-tight line-clamp-2 text-slate-700 group-hover:text-primary transition-colors">${item.title}</h3>
+            
+            <div class="px-1">
+                <h3 class="text-xs md:text-sm font-bold leading-tight line-clamp-2 text-light-text dark:text-dark-text group-hover:text-primary transition-colors">${item.title}</h3>
+                <div class="flex items-center gap-1 mt-1">
+                     <span class="text-[10px] text-light-muted dark:text-dark-muted font-medium">DramaShort</span>
+                </div>
+            </div>
         `;
-        card.onclick = () => openDetail(item.bookId);
+        card.onclick = () => {
+            window.location.href = `detail.html?id=${item.bookId}`;
+        };
         grid.appendChild(card);
     });
 }
 
-function openDetail(bookId) {
-    currentDramaId = bookId;
-    localStorage.setItem('lastDramaId', bookId);
 
-    const modal = document.getElementById('detailModal');
 
+// === DETAIL PAGE FUNCTION ===
+function loadDetail(bookId) {
+    // Show Loading Stats
     const setContent = (id, text) => {
         const el = document.getElementById(id);
         if (el) el.textContent = text;
     };
 
-    // Skeleton Loading State
-    setContent('detailTitleMobile', '');
-    setContent('detailTitleDesktop', '');
-    setContent('detailIntro', '');
-
-    const titleMobile = document.getElementById('detailTitleMobile');
-    const titleDesktop = document.getElementById('detailTitleDesktop');
-    const intro = document.getElementById('detailIntro');
-    const cover = document.getElementById('detailCover');
-    const epGrid = document.getElementById('episodesGrid');
-
-    // Add skeleton classes
-    if (titleMobile) { titleMobile.innerHTML = '<div class="skeleton h-6 w-3/4 mb-2"></div><div class="skeleton h-4 w-1/2"></div>'; }
-    if (titleDesktop) { titleDesktop.innerHTML = '<div class="skeleton h-8 w-3/4 mb-2"></div>'; }
-    if (intro) { intro.innerHTML = '<div class="skeleton h-4 w-full mb-2"></div><div class="skeleton h-4 w-full mb-2"></div><div class="skeleton h-4 w-2/3"></div>'; }
-    if (cover) {
-        cover.src = '';
-        cover.parentElement.classList.add('skeleton'); // Add skeleton to container
-    }
-
-    // Episodes Skeleton
-    epGrid.innerHTML = Array(5).fill('<div class="skeleton h-8 w-full rounded"></div>').join('');
-
-    modal.classList.remove('hidden');
-
     fetch(`${API_BASE}/enviel/drama/detail/${bookId}`)
         .then(res => res.json())
         .then(result => {
-            // Remove skeleton from cover container
-            if (cover && cover.parentElement) cover.parentElement.classList.remove('skeleton');
-
             if (result.status) {
                 const data = result.data;
+
+                // Update Metadata
+                document.title = `${data.title} - DramaShort`;
+
                 setContent('detailTitleMobile', data.title);
                 setContent('detailTitleDesktop', data.title);
                 setContent('detailIntro', data.intro);
 
-                // Store episodes for immersive player
+                // Store episodes globally for player use
                 currentEpisodes = data.episodes || [];
 
                 const cover = document.getElementById('detailCover');
                 if (cover) cover.src = data.cover;
 
                 const totalEp = data.totalEpisodes || data.episodes?.length || 0;
-                setContent('episodeTotalMobile', `Total Episodes: ${totalEp}`);
+                setContent('episodeTotalMobile', `${totalEp} Episodes`);
                 setContent('episodeTotalDesktop', `${totalEp} Episodes`);
+
+                const badge = document.getElementById('epCountBadge');
+                if (badge) badge.textContent = `${totalEp} Episodes`;
 
                 const epGrid = document.getElementById('episodesGrid');
                 epGrid.innerHTML = '';
 
+                // Add to History
+                addToHistory(data);
+
                 if (currentEpisodes.length > 0) {
                     currentEpisodes.forEach((ep, index) => {
                         const btn = document.createElement('button');
-                        btn.className = 'bg-slate-100 hover:bg-primary hover:text-white text-xs py-2 rounded transition-colors truncate font-medium';
+                        // Premium Button Style
+                        btn.className = 'bg-light-surface dark:bg-white/5 border border-light-border dark:border-white/10 hover:bg-primary hover:text-white hover:border-primary dark:hover:border-primary text-light-text dark:text-gray-300 text-xs py-2.5 px-2 rounded-lg transition-all font-medium truncate active:scale-95';
                         btn.textContent = ep.title.replace('Episode ', 'Ep ');
                         btn.onclick = () => {
-                            // Determine if mobile or desktop to choose player
                             if (window.innerWidth < 768) {
                                 openImmersivePlayer(index, data);
                             } else {
@@ -331,7 +461,7 @@ function openDetail(bookId) {
                         epGrid.appendChild(btn);
                     });
                 } else {
-                    epGrid.innerHTML = '<p class="col-span-full text-center text-xs text-slate-400">No episodes available</p>';
+                    epGrid.innerHTML = '<p class="col-span-full text-center text-xs text-light-muted">No episodes available</p>';
                 }
             }
         })
@@ -460,9 +590,17 @@ function renderSlide(episode, index, dramaData, styles = false) {
     const controls = document.createElement('div');
     controls.className = 'immersive-controls pointer-events-auto absolute inset-0 z-30 flex items-center justify-center';
     controls.innerHTML = `
-        <div class="control-inner flex items-center gap-4 pointer-events-auto">
-            <button class="play-btn bg-white/10 hover:bg-white/20 text-white rounded-full p-4 backdrop-blur-md shadow-lg pointer-events-auto" id="play-btn-${index}">
-                <span class="material-symbols-outlined text-3xl">play_arrow</span>
+        <div class="control-inner flex items-center gap-6 pointer-events-auto">
+            <button class="prev-skip-btn text-white/70 hover:text-white pointer-events-auto transition-transform active:scale-90" onclick="document.getElementById('vid-${index}').currentTime -= 10; event.stopPropagation();">
+                <span class="material-symbols-rounded text-3xl drop-shadow-md">replay_10</span>
+            </button>
+            
+            <button class="play-btn bg-white/20 hover:bg-white/30 text-white rounded-full p-5 backdrop-blur-md shadow-xl pointer-events-auto ring-1 ring-white/20 transition-transform active:scale-95" id="play-btn-${index}">
+                <span class="material-symbols-rounded text-4xl icon-filled">play_arrow</span>
+            </button>
+
+            <button class="next-btn text-white/70 hover:text-white pointer-events-auto transition-transform active:scale-90" id="next-btn-${index}">
+                <span class="material-symbols-rounded text-4xl drop-shadow-md">skip_next</span>
             </button>
         </div>
         <div class="loading-spinner hidden pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -517,6 +655,15 @@ function renderSlide(episode, index, dramaData, styles = false) {
         playBtn.addEventListener('click', stopAndPlay);
         // Ensure touch doesn't double fire
         playBtn.addEventListener('touchstart', (ev) => ev.stopPropagation(), { passive: true });
+    }
+
+    const nextBtn = document.getElementById(`next-btn-${index}`);
+    if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Trigger transition to next
+            video.currentTime = video.duration;
+        });
     }
 
     // Video buffering / playing events

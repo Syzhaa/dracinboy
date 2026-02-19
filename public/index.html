@@ -4,122 +4,147 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>DramaShort - Web</title>
+    <title>DramaShort - Premium Web</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&amp;display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap"
-        rel="stylesheet" />
+
+    <!-- Premium Fonts: Outfit (Headings) & Inter (Body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0"
         rel="stylesheet" />
+
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#FF7F7F", // Coral Pink
-                        "secondary": "#9D72FF", // Lavender
-                        "background-light": "#FFFDF0",
-                        "background-dark": "#221010", // Added from user request
+                        // Premium Palette
+                        primary: {
+                            DEFAULT: "#E50914", // Netflix Red
+                            hover: "#b20710",
+                            light: "#ff4d4d"
+                        },
+                        // Light Mode Colors
+                        light: {
+                            bg: "#ffffff",
+                            surface: "#f3f4f6",
+                            text: "#111827",
+                            muted: "#6b7280",
+                            border: "#e5e7eb"
+                        },
+                        // Dark Mode Colors
+                        dark: {
+                            bg: "#0f0f0f",     // Deep Black
+                            surface: "#1a1a1a", // Dark Grey
+                            text: "#f9fafb",
+                            muted: "#9ca3af",
+                            border: "#262626"
+                        }
                     },
                     fontFamily: {
-                        "display": ["Quicksand", "sans-serif"],
-                        "body": ["Spline Sans", "sans-serif"] // Added for immersive player
+                        sans: ["Inter", "sans-serif"],
+                        display: ["Outfit", "sans-serif"],
                     },
                     borderRadius: {
-                        "DEFAULT": "0.5rem",
-                        "lg": "1rem",
-                        "xl": "1.25rem",
-                        "full": "9999px"
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.5rem",
                     },
+                    fontSize: {
+                        xxs: "0.65rem",
+                    }
                 },
             },
         }
     </script>
     <style type="text/tailwindcss">
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: theme('colors.background-light');
+        @layer base {
+            body {
+                @apply font-sans antialiased transition-colors duration-300;
+                @apply bg-light-bg text-light-text; /* Default Light */
+            }
+            .dark body {
+                @apply bg-dark-bg text-dark-text; /* Dark Override */
+            }
         }
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
+        
+        @layer utilities {
+            .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .glass {
+                @apply backdrop-blur-md bg-white/70 border-white/20;
+            }
+            .dark .glass {
+                @apply bg-black/70 border-white/10;
+            }
+            .nav-item-active {
+                @apply bg-primary text-white shadow-lg shadow-primary/30;
+            }
+            .nav-item-inactive {
+                @apply text-light-muted hover:bg-light-surface hover:text-light-text dark:text-dark-muted dark:hover:bg-dark-surface dark:hover:text-dark-text;
+            }
         }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        /* Immersive Player Styles */
-        .scrim-bottom {
-            background: linear-gradient(to top, rgba(0,0,0, 0.9) 0%, rgba(0,0,0, 0.5) 40%, rgba(0,0,0, 0) 100%);
-        }
-        .scrim-top {
-            background: linear-gradient(to bottom, rgba(0,0,0, 0.7) 0%, rgba(0,0,0, 0) 100%);
-        }
-        .material-symbols-outlined {
+
+        /* Material Symbols Customization */
+        .material-symbols-rounded {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            transition: all 0.3s ease;
         }
-        .filled-icon {
+        .icon-filled {
             font-variation-settings: 'FILL' 1;
-        }
-    </style>
-    <style type="text/tailwindcss">
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: theme('colors.background-light');
-        }
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        body {
-            min-height: max(600px, 100dvh);
         }
     </style>
 </head>
 
-<body class="bg-background-light text-slate-800 min-h-screen flex flex-col relative md:flex-row md:items-start">
+<body
+    class="bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text min-h-screen flex flex-col relative md:flex-row md:items-start transition-colors duration-300">
 
     <!-- Sidebar for Desktop -->
     <aside
-        class="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-primary/10 bg-white/50 backdrop-blur-md px-4 py-6 justify-between z-50">
+        class="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-light-border dark:border-dark-border glass px-5 py-6 justify-between z-50">
         <div>
-            <div class="px-4 mb-8">
-                <h1 class="text-2xl font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-3xl">movie_filter</span>
-                    DramaShort
+            <div class="px-2 mb-10">
+                <h1 class="font-display text-3xl font-extrabold text-primary flex items-center gap-2 tracking-tight">
+                    <span class="material-symbols-rounded text-4xl icon-filled">movie_filter</span>
+                    Drama<span class="text-light-text dark:text-dark-text">Short</span>
                 </h1>
             </div>
 
             <nav class="flex flex-col gap-2">
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-bold transition-colors"
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 nav-item-active"
                     href="#" data-target="home">
-                    <span class="material-symbols-outlined fill-1">home</span>
+                    <span class="material-symbols-rounded icon-filled">home</span>
                     <span>Beranda</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-secondary font-semibold transition-colors"
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 nav-item-inactive"
                     href="#" data-target="foryou">
-                    <span class="material-symbols-outlined">play_circle</span>
+                    <span class="material-symbols-rounded">play_circle</span>
                     <span>Untuk Anda</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-secondary font-semibold transition-colors"
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 nav-item-inactive"
                     href="#" data-target="all">
-                    <span class="material-symbols-outlined">grid_view</span>
+                    <span class="material-symbols-rounded">grid_view</span>
                     <span>Semua Drama</span>
                 </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-secondary font-semibold transition-colors"
+                <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 nav-item-inactive"
                     href="#" data-target="downloads">
-                    <span class="material-symbols-outlined">download</span>
+                    <span class="material-symbols-rounded">bookmarks</span>
                     <span>Koleksi</span>
                 </a>
             </nav>
         </div>
 
-        <div class="px-4 text-xs text-slate-400 text-center">
+        <div class="px-4 text-xs font-medium text-light-muted dark:text-dark-muted text-center opacity-60">
             &copy; 2024 DramaShort
         </div>
     </aside>
@@ -128,64 +153,67 @@
     <div class="flex-1 flex flex-col h-full min-h-screen relative w-full">
         <!-- Header -->
         <header
-            class="sticky top-0 z-40 bg-background-light/90 backdrop-blur-md border-b border-primary/10 transition-transform duration-300 w-full"
+            class="sticky top-0 z-40 glass border-b border-light-border dark:border-dark-border transition-all duration-300 w-full"
             id="mainHeader">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div class="py-4 flex items-center justify-between gap-4">
-                    <!-- Mobile Logo (Visible only on mobile) -->
-                    <div class="md:hidden text-primary font-bold flex items-center gap-1">
-                        <span class="material-symbols-outlined">movie_filter</span>
-                        <span>DS</span>
+                    <!-- Mobile Logo -->
+                    <div class="md:hidden text-primary font-display font-bold text-xl flex items-center gap-1">
+                        <span class="material-symbols-rounded icon-filled">movie_filter</span>
+                        <span class="text-light-text dark:text-dark-text">DS</span>
                     </div>
 
                     <div class="flex-1 max-w-xl mx-auto md:mx-0">
                         <label class="relative flex items-center w-full group">
                             <span
-                                class="material-symbols-outlined absolute left-3 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+                                class="material-symbols-rounded absolute left-4 text-light-muted dark:text-dark-muted group-focus-within:text-primary transition-colors">search</span>
                             <input id="searchInput"
-                                class="w-full h-10 pl-10 pr-4 bg-white border-2 border-primary/5 rounded-full focus:ring-2 focus:ring-primary focus:border-transparent text-sm placeholder:text-slate-400"
-                                placeholder="Cari drama..." type="text" />
+                                class="w-full h-11 pl-12 pr-4 bg-light-surface dark:bg-dark-surface border-transparent focus:border-primary/50 rounded-full focus:ring-4 focus:ring-primary/10 text-sm placeholder:text-light-muted dark:placeholder:text-dark-muted transition-all shadow-sm"
+                                placeholder="Cari drama favoritmu..." type="text" />
                         </label>
                     </div>
 
-                    <button
-                        class="md:flex hidden items-center justify-center size-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
-                        <span class="material-symbols-outlined">person</span>
-                    </button>
-                    <!-- Mobile Profile -->
-                    <button
-                        class="md:hidden flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary">
-                        <span class="material-symbols-outlined">person</span>
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <!-- Theme Toggle Button -->
+                        <button id="themeToggle"
+                            class="flex items-center justify-center size-10 rounded-full bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-all active:scale-95">
+                            <span class="material-symbols-rounded dark:hidden">light_mode</span>
+                            <span class="material-symbols-rounded hidden dark:block">dark_mode</span>
+                        </button>
+
+                        <button
+                            class="hidden md:flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
+                            <span class="material-symbols-rounded">person</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Categories Nav -->
-                <!-- Categories Nav -->
                 <div class="max-w-xl mx-auto w-full mt-2">
-                    <nav class="flex gap-2 overflow-x-auto hide-scrollbar pb-2 md:justify-center items-center"
+                    <nav class="flex gap-2 overflow-x-auto hide-scrollbar pb-3 md:justify-center items-center"
                         id="categoryNav">
                         <button
-                            class="nav-filter relative py-1.5 px-3 rounded-full text-xs font-bold bg-primary/10 text-primary transition-colors whitespace-nowrap"
+                            class="nav-filter relative py-1.5 px-4 rounded-full text-xs font-bold bg-primary text-white shadow-md shadow-primary/20 transition-transform active:scale-95 whitespace-nowrap"
                             data-type="featured">
                             Untukmu
                         </button>
                         <button
-                            class="nav-filter py-1.5 px-3 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-secondary transition-colors whitespace-nowrap"
+                            class="nav-filter py-1.5 px-4 rounded-full text-xs font-medium text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-dark-surface hover:text-light-text dark:hover:text-dark-text transition-all whitespace-nowrap"
                             data-type="latest">
                             Terbaru
                         </button>
                         <button
-                            class="nav-filter py-1.5 px-3 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-secondary transition-colors whitespace-nowrap"
+                            class="nav-filter py-1.5 px-4 rounded-full text-xs font-medium text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-dark-surface hover:text-light-text dark:hover:text-dark-text transition-all whitespace-nowrap"
                             data-type="rank">
                             Populer
                         </button>
                         <button
-                            class="nav-filter py-1.5 px-3 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-secondary transition-colors whitespace-nowrap"
+                            class="nav-filter py-1.5 px-4 rounded-full text-xs font-medium text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-dark-surface hover:text-light-text dark:hover:text-dark-text transition-all whitespace-nowrap"
                             data-type="indo">
                             Indo Dub
                         </button>
                         <button
-                            class="nav-filter py-1.5 px-3 rounded-full text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-secondary transition-colors whitespace-nowrap"
+                            class="nav-filter py-1.5 px-4 rounded-full text-xs font-medium text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-dark-surface hover:text-light-text dark:hover:text-dark-text transition-all whitespace-nowrap"
                             data-type="all">
                             Semua
                         </button>
@@ -197,16 +225,32 @@
         <!-- Main Content -->
         <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto w-full" id="mainContainer">
             <div class="max-w-7xl mx-auto w-full">
+                <!-- Continue Watching Section -->
+                <!-- Continue Watching removed -->
+                <!-- Section Title for Active Category -->
+                <div class="mb-6 flex items-center justify-between">
+                    <h2 class="text-xl font-display font-bold text-light-text dark:text-dark-text tracking-tight"
+                        id="sectionTitle">
+                        Untuk Anda
+                    </h2>
+                </div>
+
                 <div id="dramaGrid"
                     class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
                     <!-- Dynamic Content Will Be Injected Here -->
-                    <div class="col-span-full text-center py-20 text-slate-400">Loading dramas...</div>
+
+                    <!-- Loading Skeleton Example -->
+                    <div
+                        class="animate-pulse col-span-full py-20 flex flex-col items-center justify-center text-light-muted dark:text-dark-muted">
+                        <span class="material-symbols-rounded text-4xl mb-2 animate-spin">data_usage</span>
+                        <span class="text-sm font-medium">Memuat drama terbaik...</span>
+                    </div>
                 </div>
 
                 <!-- Load More Button -->
-                <div class="mt-8 text-center hidden" id="loadMoreContainer">
+                <div class="mt-12 text-center hidden" id="loadMoreContainer">
                     <button id="loadMoreBtn"
-                        class="px-6 py-2 bg-white border border-slate-200 text-slate-600 rounded-full hover:bg-slate-50 hover:text-primary hover:border-primary/30 transition-all font-semibold shadow-sm text-sm">
+                        class="px-8 py-3 bg-white dark:bg-dark-surface border border-light-border dark:border-dark-border text-light-text dark:text-dark-text rounded-full hover:border-primary/50 hover:text-primary dark:hover:text-primary transition-all font-semibold shadow-sm text-sm tracking-wide">
                         Muat Lebih Banyak
                     </button>
                 </div>
@@ -214,59 +258,78 @@
         </main>
     </div>
 
-    <!-- Detail Modal (Full Screen Overlay) -->
+    <!-- Detail Modal (Premium Overlay) -->
     <div id="detailModal"
-        class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm hidden flex flex-col items-center justify-center p-4">
-        <!-- Adjusted width for desktop -->
+        class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex flex-col items-center justify-center p-4 transition-opacity duration-300">
         <div
-            class="bg-background-light w-full max-w-lg md:max-w-2xl h-[90vh] md:h-[80vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative">
-            <div class="absolute top-2 right-2 z-10 md:hidden">
+            class="bg-white dark:bg-dark-surface w-full max-w-lg md:max-w-4xl h-[85vh] md:h-[80vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row relative ring-1 ring-white/10">
+
+            <div class="absolute top-4 right-4 z-20 md:hidden">
                 <button id="closeModalMobile"
-                    class="bg-black/20 p-2 rounded-full text-white hover:bg-black/40 backdrop-blur-sm">
-                    <span class="material-symbols-outlined">close</span>
+                    class="bg-black/40 p-2 rounded-full text-white backdrop-blur-md hover:bg-black/60 transition-all">
+                    <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
 
             <!-- Cover Image section -->
-            <div class="relative h-64 md:h-full md:w-1/3 bg-slate-200 flex-shrink-0">
+            <div class="relative h-72 md:h-full md:w-5/12 bg-gray-200 dark:bg-gray-800 flex-shrink-0">
                 <div
-                    class="absolute inset-0 bg-gradient-to-t from-background-light to-transparent z-10 md:bg-gradient-to-r md:from-transparent md:to-background-light/10">
+                    class="absolute inset-0 bg-gradient-to-t from-white dark:from-dark-surface via-transparent to-transparent z-10 md:bg-gradient-to-r md:from-transparent md:to-white dark:md:to-dark-surface/90">
                 </div>
                 <img id="detailCover" class="w-full h-full object-cover" src="" alt="Cover">
+
                 <!-- Mobile Title Overlay -->
-                <div class="absolute bottom-4 left-4 z-20 pr-4 md:hidden">
-                    <h2 id="detailTitleMobile" class="text-xl font-bold text-slate-800 leading-tight">Title</h2>
-                    <p class="text-xs text-slate-500 mt-1" id="episodeTotalMobile">Total Episodes: 0</p>
+                <div class="absolute bottom-6 left-6 z-20 pr-6 md:hidden">
+                    <h2 id="detailTitleMobile"
+                        class="text-2xl font-display font-bold text-light-text dark:text-white leading-tight drop-shadow-md">
+                        Title</h2>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded">HD</span>
+                        <p class="text-xs text-light-text/80 dark:text-gray-300 font-medium" id="episodeTotalMobile">0
+                            Episodes</p>
+                    </div>
                 </div>
             </div>
 
             <!-- Content Section -->
-            <div class="p-4 md:p-8 flex-1 overflow-y-auto flex flex-col relative">
-                <div class="absolute top-4 right-4 z-10 hidden md:block">
+            <div class="p-6 md:p-10 flex-1 overflow-y-auto flex flex-col relative bg-white dark:bg-dark-surface">
+                <div class="absolute top-6 right-6 z-10 hidden md:block">
                     <button id="closeModalDesktop"
-                        class="bg-slate-100 p-2 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
+                        class="p-2 rounded-full text-light-muted dark:text-dark-muted hover:bg-light-surface dark:hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-rounded text-2xl">close</span>
                     </button>
                 </div>
 
                 <!-- Desktop Title -->
                 <div class="hidden md:block mb-6">
-                    <h2 id="detailTitleDesktop" class="text-2xl font-bold text-slate-800 leading-tight mb-2">Title</h2>
-                    <div class="flex items-center gap-2 text-sm text-slate-500">
-                        <span id="episodeTotalDesktop"
-                            class="bg-secondary/10 text-secondary px-2 py-0.5 rounded font-bold">0 Episodes</span>
-                        <span class="bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">HD</span>
+                    <h2 id="detailTitleDesktop"
+                        class="text-3xl font-display font-bold text-light-text dark:text-dark-text leading-tight mb-3">
+                        Title</h2>
+                    <div class="flex items-center gap-3 text-sm">
+                        <span
+                            class="bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-md font-bold text-xs">FULL
+                            HD</span>
+                        <span id="episodeTotalDesktop" class="text-light-muted dark:text-dark-muted font-medium">0
+                            Episodes</span>
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <h3 class="font-bold text-slate-800 mb-2 text-sm uppercase tracking-wider">Synopsis</h3>
-                    <p id="detailIntro" class="text-sm text-slate-600 leading-relaxed">Introduction...</p>
+                <div class="mb-8">
+                    <h3 class="font-bold text-xs text-light-muted dark:text-dark-muted uppercase tracking-wider mb-2">
+                        Sinopsis</h3>
+                    <p id="detailIntro"
+                        class="text-sm text-light-text dark:text-gray-300 leading-relaxed opacity-90 line-clamp-4 hover:line-clamp-none transition-all">
+                        Introduction...</p>
                 </div>
 
-                <h3
-                    class="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wider sticky top-0 bg-background-light py-2 z-10">
-                    Episodes</h3>
+                <div
+                    class="flex items-center justify-between mb-4 sticky top-0 bg-white dark:bg-dark-surface py-2 z-10">
+                    <h3 class="font-bold text-sm text-light-text dark:text-dark-text uppercase tracking-wider">
+                        Episodes
+                    </h3>
+                    <button class="text-xs text-primary font-medium hover:underline">Lihat Semua</button>
+                </div>
+
                 <div id="episodesGrid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2 pb-4">
                     <!-- Episodes -->
                 </div>
@@ -274,34 +337,40 @@
         </div>
     </div>
 
-    <!-- Video Modal (Simple) for Desktop -->
-    <div id="videoModal" class="fixed inset-0 z-[60] bg-black hidden flex items-center justify-center">
+    <!-- Video Modal (Cinema Mode) -->
+    <div id="videoModal"
+        class="fixed inset-0 z-[60] bg-black hidden flex items-center justify-center animate-in fade-in duration-300">
         <button id="closeVideo"
-            class="absolute top-4 right-4 z-10 text-white p-2 bg-white/10 rounded-full hover:bg-white/20 backdrop-blur-sm transition-colors">
-            <span class="material-symbols-outlined text-3xl">close</span>
+            class="absolute top-6 right-6 z-20 text-white/70 hover:text-white p-2 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all transform hover:rotate-90">
+            <span class="material-symbols-rounded text-3xl">close</span>
         </button>
-        <video id="videoPlayer" class="w-full max-w-4xl max-h-[90vh] aspect-video bg-black shadow-2xl rounded-lg"
-            controls autoplay></video>
+        <div
+            class="w-full max-w-6xl aspect-video relative shadow-2xl ring-1 ring-white/10 rounded-xl overflow-hidden bg-black">
+            <video id="videoPlayer" class="w-full h-full object-contain" controls autoplay></video>
+        </div>
     </div>
 
-    <!-- Immersive Mobile Player (Full Screen Overlay) -->
-    <div id="immersivePlayer" class="fixed inset-0 z-[70] bg-black hidden font-body">
+    <!-- Immersive Mobile Player (TikTok Style) -->
+    <div id="immersivePlayer" class="fixed inset-0 z-[70] bg-black hidden font-sans">
         <!-- Main Feed Container with Snap Scroll -->
-        <div id="immersiveFeed" class="w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar relative">
+        <div id="immersiveFeed"
+            class="w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar relative bg-black">
             <!-- Dynamic Slides Will Be Injected Here -->
         </div>
 
         <!-- Float Top Controls -->
-        <div class="absolute top-0 left-0 w-full z-20 pt-12 px-6 flex justify-between items-start pointer-events-none">
-            <div class="flex gap-4 items-center pointer-events-auto">
-                <button id="closeImmersive" class="text-white hover:scale-110 transition-transform">
-                    <span class="material-symbols-outlined shadow-md">arrow_back_ios</span>
-                </button>
-                <div class="flex bg-black/30 backdrop-blur-md rounded-full px-4 py-1 border border-white/10">
-                    <span class="text-xs font-medium tracking-wide text-white">Sedang Menonton</span>
-                </div>
+        <div class="absolute top-0 left-0 w-full z-20 pt-12 px-5 flex justify-between items-center pointer-events-none">
+            <button id="closeImmersive"
+                class="text-white hover:scale-110 active:scale-95 transition-transform pointer-events-auto p-2 -ml-2">
+                <span class="material-symbols-rounded text-3xl drop-shadow-md">arrow_back_ios_new</span>
+            </button>
+
+            <div
+                class="flex bg-black/40 backdrop-blur-xl rounded-full px-5 py-1.5 border border-white/10 shadow-lg pointer-events-auto">
+                <span class="text-xs font-semibold tracking-wide text-white/90">Sedang Menonton</span>
             </div>
-            <!-- Search hidden for simplicity or can be enabled -->
+
+            <div class="w-8"></div> <!-- Spacer for balance -->
         </div>
     </div>
 

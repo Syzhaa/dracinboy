@@ -1,307 +1,31 @@
-:root {
-    --primary: #e50914;
-    --dark: #141414;
-    --light: #fff;
-    --gray: #aaa;
-    --dark-gray: #1f1f1f;
+/* Immersive Player & Animations */
+
+/* Scrims - Gradients for text readability */
+.scrim-bottom {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 40%, rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+.scrim-top {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--dark);
-    color: var(--light);
+/* Animations */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 4%;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 10%, transparent);
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 100;
-}
-
-.logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.logo span {
-    color: var(--light);
-}
-
-.search-bar {
-    display: flex;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--gray);
-    padding: 5px 10px;
-    border-radius: 4px;
-}
-
-.search-bar input {
-    background: transparent;
-    border: none;
-    color: var(--light);
-    outline: none;
-    padding: 5px;
-}
-
-.search-bar button {
-    background: transparent;
-    border: none;
-    color: var(--light);
-    cursor: pointer;
-}
-
-/* Hero Section */
-.hero {
-    height: 80vh;
-    position: relative;
-    display: flex;
-    align-items: center;
-    padding: 0 4%;
-}
-
-.hero-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to top, var(--dark) 0%, transparent 60%),
-        linear-gradient(to right, var(--dark) 0%, transparent 50%);
-    z-index: 1;
-}
-
-#heroImage {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 0;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    max-width: 500px;
-}
-
-.hero-content h1 {
-    font-size: 3rem;
-    margin-bottom: 10px;
-}
-
-.hero-content p {
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    color: #ddd;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.btn-primary {
-    background-color: var(--primary);
-    color: var(--light);
-    border: none;
-    padding: 10px 25px;
-    font-size: 1.1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s;
-}
-
-.btn-primary:hover {
-    background-color: #f40612;
-}
-
-/* Grids */
-.drama-list {
-    padding: 20px 4%;
-}
-
-.drama-list h2 {
-    margin-bottom: 15px;
-    font-size: 1.4rem;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-}
-
-.card {
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: scale(1.05);
-}
-
-.card img {
-    width: 100%;
-    aspect-ratio: 3/4;
-    object-fit: cover;
-    border-radius: 4px;
-}
-
-.card h3 {
-    font-size: 0.9rem;
-    margin-top: 5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Modal */
-.modal {
-    display: flex;
-    /* Hidden by default via class */
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
-    justify-content: center;
-    align-items: center;
-}
-
-.modal.hidden {
-    display: none;
-}
-
-.modal-content {
-    background-color: var(--dark-gray);
-    padding: 20px;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 800px;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-}
-
-.close-modal,
-.close-video {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 30px;
-    cursor: pointer;
-    color: var(--light);
-}
-
-.detail-layout {
-    display: flex;
-    gap: 20px;
-}
-
-.detail-left img {
-    width: 200px;
-    border-radius: 4px;
-}
-
-.detail-right {
-    flex: 1;
-}
-
-.detail-right h2 {
-    margin-bottom: 10px;
-}
-
-.detail-right p {
-    color: #ccc;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.episodes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.episode-btn {
-    background-color: #333;
-    border: none;
-    color: var(--light);
-    padding: 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: center;
-}
-
-.episode-btn:hover {
-    background-color: var(--primary);
-}
-
-/* Video Player */
-.video-content {
-    background: black;
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-video {
-    width: 100%;
-    height: 100%;
-    max-height: 90vh;
-}
-
-/* Immersive player controls & spinner */
-.immersive-controls {
-    transition: opacity 200ms ease;
-}
-
-.immersive-controls.opacity-0 {
-    opacity: 0;
-}
-
-.meta-hidden h2,
-.meta-hidden p,
-.meta-hidden .bg-primary\/20,
-.meta-hidden .bg-white\/10 {
-    opacity: 0 !important;
-    transform: translateY(6px);
-    transition: opacity 200ms ease, transform 200ms ease;
-}
-
-.loading-spinner .spinner {
-    border-top-color: #fff;
-}
-
-/* Spinner utility */
-.animate-spin {
-    animation: spin 1s linear infinite;
+.fade-in {
+    animation: fade-in 0.5s ease-out forwards;
 }
 
 @keyframes spin {
@@ -310,17 +34,54 @@ video {
     }
 }
 
-/* Ensure interactive elements inside overlays are clickable */
-.pointer-events-auto {
-    pointer-events: auto;
+.animate-spin {
+    animation: spin 1s linear infinite;
 }
 
-/* Skeleton Loading Animation */
+/* Immersive Player UI Logic */
+.meta-hidden .immersive-controls,
+.meta-hidden .scrim-top,
+.meta-hidden .scrim-bottom,
+.meta-hidden .episode-badge,
+.meta-hidden h2,
+.meta-hidden p {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.meta-hidden h2,
+.meta-hidden p {
+    transform: translateY(10px);
+}
+
+.immersive-controls,
+.scrim-top,
+.scrim-bottom,
+.episode-badge,
+h2,
+p {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Play Button Interaction */
+.play-btn {
+    transition: transform 0.2s, opacity 0.3s;
+}
+
+.play-btn:active {
+    transform: scale(0.95);
+}
+
+/* Skeleton Loading */
 .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
-    border-radius: 4px;
+}
+
+.dark .skeleton {
+    background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
 }
 
 @keyframes skeleton-loading {
@@ -331,51 +92,4 @@ video {
     100% {
         background-position: -200% 0;
     }
-}
-
-/* Modal Close Button Improvements */
-#detailModal {
-    cursor: pointer;
-    /* To indicate backdrop is clickable */
-}
-
-#detailModal>div {
-    cursor: default;
-    /* Reset cursor on modal content */
-}
-
-.close-modal-btn {
-    z-index: 1000;
-    pointer-events: auto;
-    cursor: pointer;
-}
-
-/* Immersive Player UI Visibility */
-/* When .meta-hidden is present, hide these elements */
-.meta-hidden .immersive-controls,
-.meta-hidden .scrim-top,
-.meta-hidden .scrim-bottom,
-.meta-hidden .episode-badge {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-/* Ensure controls are visible by default/when active */
-.immersive-controls,
-.scrim-top,
-.scrim-bottom,
-.episode-badge {
-    opacity: 1;
-    pointer-events: auto;
-    transition: opacity 0.3s ease;
-}
-
-/* Play button specific styling */
-.play-btn {
-    transition: transform 0.2s, opacity 0.3s;
-}
-
-.play-btn:active {
-    transform: scale(0.95);
 }
