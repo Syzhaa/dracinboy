@@ -507,6 +507,8 @@ function closeVideoModal() {
 }
 
 // === IMMERSIVE MOBILE PLAYER ===
+let observer = null;
+
 function openImmersivePlayer(startIndex, dramaData) {
     const playerContainer = document.getElementById('immersivePlayer');
     const feed = document.getElementById('immersiveFeed');
@@ -515,88 +517,125 @@ function openImmersivePlayer(startIndex, dramaData) {
     currentEpisodeIndex = startIndex;
     localStorage.setItem('lastEpIndex', startIndex);
 
-    // Render initial batch (start index + next few)
-    // For production, implemented infinite scroll logic. For now, render all or a batch.
-    // Let's render all since episodes lists strictly < 100 usually for these short dramas or lazy load?
-    // User requested "auto scroll", so let's render all but be careful.
+    // Initial Render Strategy: Render Current, Previous (if any), and Next 2
+    const renderRange = (idx) => {
+        const start = Math.max(0, idx - 1);
+        const end = Math.min(currentEpisodes.length, idx + 3);
 
-    // Optimization: Render specific range? 
-    // Let's render current + 5 next for start.
+        feed.innerHTML = '';
 
-    const episodesToRender = currentEpisodes.slice(Math.max(0, startIndex - 1), startIndex + 5);
-    // Actually, simple list rendering is fine for now as video elements are heavy.
-    // Better to render one by one or a few.
+        for (let i = start; i < end; i++) {
+            renderSlide(currentEpisodes[i], i, dramaData);
+        }
+    };
 
-    // We will render ALL for simplicity but only play the current one.
-    // Creating elements for 50+ videos might be heavy.
-    // Let's implement a dynamic renderer.
+    renderRange(startIndex);
 
-    // Render current one first
-    renderSlide(currentEpisodes[startIndex], startIndex, dramaData, true);
+    // Scroll to current
+    setTimeout(() => {
+        const currentSlide = document.querySelector(`[data-index="${startIndex}"]`);
+        if (currentSlide) currentSlide.scrollIntoView({ behavior: 'auto' });
+    }, 0);
 
-    // Render next ones locally
-    for (let i = startIndex + 1; i < Math.min(startIndex + 3, currentEpisodes.length); i++) {
-        renderSlide(currentEpisodes[i], i, dramaData, false);
-    }
+    // Setup Intersection Observer for Single Video Playback
+    if (observer) observer.disconnect();
+
+    observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const index = parseInt(entry.target.dataset.index);
+            const video = document.getElementById(`vid-${index}`);
+
+            if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+                // Video is mostly visible - PLAY
+                if (video) {
+                    // Pause all others first
+                    document.querySelectorAll('video').forEach(v => {
+                        if (v !== video && !v.paused) v.pause();
+                    });
+
+                    video.play().catch(e => console.log("Auto-play blocked:", e));
+                    currentEpisodeIndex = index;
+                    localStorage.setItem('lastEpIndex', index);
+                }
+            } else {
+                // Video is not mostly visible - PAUSE
+                if (video && !video.paused) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            }
+        });
+    }, { threshold: 0.6 });
+
+    document.querySelectorAll('.snap-center').forEach(el => observer.observe(el));
 }
 
 function renderSlide(episode, index, dramaData, styles = false) {
     const feed = document.getElementById('immersiveFeed');
+    // Check if exists
+    if (document.querySelector(`[data-index="${index}"]`)) return;
+
     const slide = document.createElement('div');
-    slide.className = 'w-full h-full snap-center relative bg-black flex items-center justify-center';
+    slide.className = 'w-full h-full snap-center relative bg-black flex items-center justify-center overflow-hidden';
     slide.dataset.index = index;
 
-    const isHD = Math.random() > 0.5; // Metadata simulation
-
-    // Using User's Design Template
     slide.innerHTML = `
-        <div class="relative w-full h-full font-body">
-            <!-- Background Cover (Blurred) -->
-             <div class="absolute inset-0 bg-cover bg-center blur-3xl opacity-30" style="background-image: url('${dramaData.cover}');"></div>
+        <div class="relative w-full h-full font-sans group select-none">
+            <!-- Background Blur -->
+             <div class="absolute inset-0 bg-cover bg-center blur-3xl opacity-20 transform scale-125 transition-opacity" style="background-image: url('${dramaData.cover}');"></div>
              
-             <!-- Video Player -->
+             <!-- Video Layer -->
              <video class="w-full h-full object-contain absolute inset-0 z-10" 
-                    ${index === currentEpisodeIndex ? 'autoplay' : ''} 
                     playsinline
+                    webkit-playsinline
                     src="${episode.url}"
                     id="vid-${index}"></video>
             
-            <!-- Metadata & Controls Overlay -->
-            <div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between">
-                 <!-- Top Scrim -->
-                 <div class="w-full h-32 scrim-top"></div>
-                 
-                 <!-- Episode Badge (Right) -->
-                 <div class="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-6 pointer-events-auto">
-                    <div class="flex flex-col items-center gap-2">
-                        <div class="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-3 flex flex-col items-center justify-center w-16 h-16 shadow-lg">
-                            <span class="text-xs text-white/70 font-medium uppercase">Eps</span>
-                            <span class="text-2xl font-bold text-white">${index + 1}</span>
-                        </div>
-                        <span class="text-[10px] uppercase tracking-widest text-white/60">Series</span>
-                    </div>
-                </div>
+            <!-- Tap Zones for Seek (Double Tap) -->
+            <div class="absolute inset-y-0 left-0 w-1/3 z-20" id="tap-left-${index}"></div>
+            <div class="absolute inset-y-0 right-0 w-1/3 z-20" id="tap-right-${index}"></div>
+            <div class="absolute inset-y-0 left-1/3 right-1/3 z-20 flex items-center justify-center pointer-events-none" id="tap-center-${index}">
+                 <!-- Play/Pause Animation Icon -->
+                 <div id="play-anim-${index}" class="bg-black/50 rounded-full p-4 text-white opacity-0 transform scale-50 transition-all duration-200">
+                    <span class="material-symbols-rounded text-5xl icon-filled">play_arrow</span>
+                 </div>
+            </div>
 
-                <!-- Bottom Scrim & Info -->
-                <div class="w-full pb-8 scrim-bottom pt-24 pointer-events-auto">
-                    <div class="px-6">
-                        <div class="flex items-center gap-2 mb-3">
-                             <span class="bg-primary/20 text-primary border border-primary/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Hot Drama</span>
-                        </div>
-                        <h2 class="text-3xl font-bold mb-2 drop-shadow-md tracking-tight leading-tight text-white">${dramaData.title}</h2>
-                        <p class="text-base text-white/90 line-clamp-2 max-w-[85%] leading-relaxed drop-shadow-sm font-light">
-                            ${episode.title}
-                        </p>
-                        <div class="flex items-center gap-2 mt-4 text-sm text-white/60">
-                            <span class="material-symbols-rounded !text-lg">music_note</span>
-                            <span class="truncate">Original Sound - DramaShort</span>
-                        </div>
+            <!-- UI Overlay -->
+            <div class="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between transition-opacity duration-300" id="ui-overlay-${index}">
+                 <!-- Top Gradient -->
+                 <div class="w-full h-32 bg-gradient-to-b from-black/60 to-transparent"></div>
+                 
+                 <!-- Bottom Info Area -->
+                 <div class="w-full bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-32 pb-6 px-4 pointer-events-auto">
+                    <div class="mb-3">
+                         <div class="flex items-center gap-2 mb-2 transparent">
+                             <span class="px-2 py-0.5 bg-primary rounded text-[10px] font-bold text-white uppercase tracking-wider shadow-sm">Episode ${index + 1}</span>
+                             <span class="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded text-[10px] font-medium text-white shadow-sm border border-white/10">HD 1080p</span>
+                         </div>
+                         <h2 class="text-lg font-bold text-white leading-tight drop-shadow-md line-clamp-2 shadow-black">${dramaData.title}</h2>
+                         <p class="text-sm text-gray-200 mt-1 line-clamp-1 font-light opacity-90 shadow-black">${episode.title}</p>
                     </div>
                     
-                    <!-- Progress Bar (Simple Visual) -->
-                    <div class="w-full px-6 mt-4">
-                        <progress class="w-full h-1 [&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-primary" value="0" max="100" id="prog-${index}"></progress>
+                    <!-- Progress Bar -->
+                    <div class="relative w-full h-1 bg-gray-600/50 rounded-full overflow-hidden group/progress cursor-pointer">
+                        <div class="absolute top-0 left-0 h-full bg-primary transition-all duration-100 ease-linear w-0" id="prog-bar-${index}"></div>
+                        <input type="range" min="0" max="100" value="0" step="0.1" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-40" id="seeker-${index}">
                     </div>
+                    
+                     <div class="flex items-center justify-between mt-2 text-[10px] text-gray-400 font-mono">
+                        <span id="time-cur-${index}">00:00</span>
+                        <div class="flex-1"></div>
+                        <span id="time-dur-${index}">00:00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Seek Feedback Overlay -->
+            <div class="absolute inset-0 z-40 pointer-events-none flex items-center justify-center opacity-0 transition-opacity duration-300" id="seek-feedback-${index}">
+                <div class="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2 text-white font-bold text-sm">
+                    <span class="material-symbols-rounded" id="seek-icon-${index}">fast_forward</span>
+                    <span id="seek-text-${index}">+10s</span>
                 </div>
             </div>
         </div>
@@ -604,116 +643,140 @@ function renderSlide(episode, index, dramaData, styles = false) {
 
     feed.appendChild(slide);
 
-    // Video Logic
-    const video = slide.querySelector('video');
+    const video = document.getElementById(`vid-${index}`);
+    const playAnim = document.getElementById(`play-anim-${index}`);
+    const tapLeft = document.getElementById(`tap-left-${index}`);
+    const tapRight = document.getElementById(`tap-right-${index}`);
+    const seeker = document.getElementById(`seeker-${index}`);
+    const progBar = document.getElementById(`prog-bar-${index}`);
+    const curTimeEl = document.getElementById(`time-cur-${index}`);
+    const durTimeEl = document.getElementById(`time-dur-${index}`);
+    const seekFeed = document.getElementById(`seek-feedback-${index}`);
+    const uiOverlay = document.getElementById(`ui-overlay-${index}`);
+    const topNav = document.getElementById('immersiveTopNav');
 
-    // Create controls overlay (play/pause center) and loading spinner
-    const controls = document.createElement('div');
-    controls.className = 'immersive-controls pointer-events-auto absolute inset-0 z-30 flex items-center justify-center';
-    controls.innerHTML = `
-        <div class="control-inner flex items-center gap-6 pointer-events-auto">
-            <button class="prev-skip-btn text-white/70 hover:text-white pointer-events-auto transition-transform active:scale-90" onclick="document.getElementById('vid-${index}').currentTime -= 10; event.stopPropagation();">
-                <span class="material-symbols-rounded text-3xl drop-shadow-md">replay_10</span>
-            </button>
-            
-            <button class="play-btn bg-white/20 hover:bg-white/30 text-white rounded-full p-5 backdrop-blur-md shadow-xl pointer-events-auto ring-1 ring-white/20 transition-transform active:scale-95" id="play-btn-${index}">
-                <span class="material-symbols-rounded text-4xl icon-filled">play_arrow</span>
-            </button>
+    // Format Time Helper
+    const fmt = (s) => {
+        if (!s) return "00:00";
+        const m = Math.floor(s / 60).toString().padStart(2, '0');
+        const sec = Math.floor(s % 60).toString().padStart(2, '0');
+        return `${m}:${sec}`;
+    };
 
-            <button class="next-btn text-white/70 hover:text-white pointer-events-auto transition-transform active:scale-90" id="next-btn-${index}">
-                <span class="material-symbols-rounded text-4xl drop-shadow-md">skip_next</span>
-            </button>
-        </div>
-        <div class="loading-spinner hidden pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div class="spinner border-4 border-white/20 border-t-white rounded-full w-12 h-12 animate-spin"></div>
-        </div>
-    `;
-    slide.appendChild(controls);
+    // --- Interaction Logic ---
+    let lastTap = 0;
 
-    // Ensure modal/close buttons are clickable (fix edge-case where parent had pointer-events:none)
-    ['closeModalMobile', 'closeModalDesktop', 'closeVideo', 'closeImmersive'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.style.pointerEvents = 'auto';
-            el.style.zIndex = 60;
-        }
-    });
-
-    const playBtn = document.getElementById(`play-btn-${index}`);
-    const spinner = slide.querySelector('.loading-spinner');
-
-    const showSpinner = () => { if (spinner) spinner.classList.remove('hidden'); };
-    const hideSpinner = () => { if (spinner) spinner.classList.add('hidden'); };
-
-    // Play/pause toggle - Core Logic based on state
-    const togglePlay = async () => {
-        try {
-            if (video.paused) {
-                showSpinner();
-                // Strictly Step 1: Hide UI
-                slide.classList.add('meta-hidden');
-                // Strictly Step 2: Play
-                await video.play();
-            } else {
-                // Strictly Step 1: Pause
-                video.pause();
-                // Strictly Step 2: Show UI
-                slide.classList.remove('meta-hidden');
-            }
-        } catch (e) {
-            console.warn('Play failed:', e);
-            // Revert UI if play failed
-            slide.classList.remove('meta-hidden');
+    // Toggle Play Function
+    const togglePlay = () => {
+        if (video.paused) {
+            video.play();
+            playAnim.innerHTML = '<span class="material-symbols-rounded text-5xl icon-filled">play_arrow</span>';
+            animatePlayIcon();
+            // Hide UI on Play
+            uiOverlay.classList.add('opacity-0');
+            if (topNav) topNav.classList.add('opacity-0');
+        } else {
+            video.pause();
+            playAnim.innerHTML = '<span class="material-symbols-rounded text-5xl icon-filled">pause</span>';
+            animatePlayIcon(true);
+            // Show UI on Pause
+            uiOverlay.classList.remove('opacity-0');
+            if (topNav) topNav.classList.remove('opacity-0');
         }
     };
 
-    if (playBtn) {
-        // Prevent bubbling to slide click handler to avoid double toggle
-        const stopAndPlay = (ev) => {
-            ev.stopPropagation();
-            togglePlay();
-        };
-        playBtn.addEventListener('click', stopAndPlay);
-        // Ensure touch doesn't double fire
-        playBtn.addEventListener('touchstart', (ev) => ev.stopPropagation(), { passive: true });
-    }
+    const animatePlayIcon = (persist = false) => {
+        playAnim.classList.remove('opacity-0', 'scale-50');
+        playAnim.classList.add('opacity-100', 'scale-100');
+        if (!persist) {
+            setTimeout(() => {
+                playAnim.classList.remove('opacity-100', 'scale-100');
+                playAnim.classList.add('opacity-0', 'scale-50');
+            }, 600);
+        } else {
+            setTimeout(() => {
+                if (video.paused) {
+                    playAnim.classList.remove('opacity-100', 'scale-100');
+                    playAnim.classList.add('opacity-0', 'scale-50');
+                }
+            }, 800);
+        }
+    };
 
-    const nextBtn = document.getElementById(`next-btn-${index}`);
-    if (nextBtn) {
-        nextBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // Trigger transition to next
-            video.currentTime = video.duration;
-        });
-    }
+    // Generic Tap Handler
+    const handleTap = (type) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            // DOUBLE TAP
+            if (type === 'left') {
+                video.currentTime = Math.max(0, video.currentTime - 10);
+                showSeekFeedback('fast_rewind', '-10s');
+                if (video.paused) video.play();
+            } else if (type === 'right') {
+                video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                showSeekFeedback('fast_forward', '+10s');
+                if (video.paused) video.play();
+            } else {
+                togglePlay();
+            }
+        } else {
+            // SINGLE TAP
+            if (type === 'center') {
+                // If UI is hidden, just show it? Or Toggle Play?
+                // User wants "clean" area. Standard behavior: Tap toggles UI + Play? 
+                // Or Tap toggles UI Only?
+                // Let's make Single Tap Toggle Play AND Toggle UI visibility sync.
+                togglePlay();
+            }
+        }
+        lastTap = now;
+    };
 
-    // Video buffering / playing events
-    video.addEventListener('waiting', showSpinner);
-    video.addEventListener('canplay', hideSpinner);
-    video.addEventListener('playing', () => {
-        hideSpinner();
-        // Clear button content so no icon is visible during playback
-        if (playBtn) playBtn.innerHTML = '';
-        slide.classList.add('meta-hidden');
-    });
-    video.addEventListener('pause', () => {
-        // Show Play icon when paused
-        if (playBtn) playBtn.innerHTML = '<span class="material-symbols-rounded text-3xl icon-filled">play_arrow</span>';
-        slide.classList.remove('meta-hidden');
-    });
+    const showSeekFeedback = (icon, text) => {
+        document.getElementById(`seek-icon-${index}`).textContent = icon;
+        document.getElementById(`seek-text-${index}`).textContent = text;
+        seekFeed.classList.remove('opacity-0');
+        setTimeout(() => seekFeed.classList.add('opacity-0'), 800);
+    };
 
-    // Tap Anywhere on Slide to Toggle Play/Pause (TikTok Style)
+    // Bind Taps
     slide.addEventListener('click', (e) => {
-        // Ignore if clicking specific interactive elements (buttons, inputs, etc)
-        // But allow clicking the general 'controls' container if it's just a pass-through
-        if (e.target.closest('button') || e.target.closest('input') || e.target.closest('a')) return;
-
-        togglePlay();
+        if (e.target.closest('.pointer-events-auto')) return;
+        handleTap('center');
     });
 
-    // Start UI Logic: Show initially if paused
-    if (video.paused) slide.classList.remove('meta-hidden');
-    else slide.classList.add('meta-hidden');
+    tapLeft.addEventListener('click', (e) => { e.stopPropagation(); handleTap('left'); });
+    tapRight.addEventListener('click', (e) => { e.stopPropagation(); handleTap('right'); });
+
+    // Seeker Logic
+    seeker.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const time = (val / 100) * video.duration;
+        video.currentTime = time;
+    });
+
+    // Time Update
+    video.ontimeupdate = () => {
+        const pct = (video.currentTime / video.duration) * 100;
+        progBar.style.width = `${pct}%`;
+        seeker.value = pct;
+        curTimeEl.textContent = fmt(video.currentTime);
+        durTimeEl.textContent = fmt(video.duration);
+    };
+
+    video.onloadedmetadata = () => durTimeEl.textContent = fmt(video.duration);
+
+    // Video Events
+    video.onplaying = () => {
+        playAnim.classList.add('opacity-0', 'scale-50');
+        uiOverlay.classList.add('opacity-0'); // Ensure hidden on play
+        if (topNav) topNav.classList.add('opacity-0');
+    };
+
+    video.onpause = () => {
+        uiOverlay.classList.remove('opacity-0'); // Ensure shown on pause
+        if (topNav) topNav.classList.remove('opacity-0');
+    };
 
     // Auto Scroll on End
     video.onended = () => {
@@ -723,20 +786,16 @@ function renderSlide(episode, index, dramaData, styles = false) {
             const nextSlide = document.querySelector(`[data-index="${nextIndex}"]`);
             if (nextSlide) {
                 nextSlide.scrollIntoView({ behavior: 'smooth' });
-                // Play will be handled by intersection observer or manual play
-                const nextVid = document.getElementById(`vid-${nextIndex}`);
-                if (nextVid) nextVid.play();
+                // Play is handled by IntersectionObserver
                 currentEpisodeIndex = nextIndex;
-                localStorage.setItem('lastEpIndex', nextIndex); // Update saved state
+                localStorage.setItem('lastEpIndex', nextIndex);
             } else {
                 // If next slide not rendered yet
                 renderSlide(currentEpisodes[nextIndex], nextIndex, dramaData);
                 // Allow DOM update then scroll
                 setTimeout(() => {
                     const newSlide = document.querySelector(`[data-index="${nextIndex}"]`);
-                    newSlide.scrollIntoView({ behavior: 'smooth' });
-                    const newVid = document.getElementById(`vid-${nextIndex}`);
-                    if (newVid) newVid.play();
+                    if (newSlide) newSlide.scrollIntoView({ behavior: 'smooth' });
                     currentEpisodeIndex = nextIndex;
                     localStorage.setItem('lastEpIndex', nextIndex);
                 }, 100);
@@ -744,34 +803,26 @@ function renderSlide(episode, index, dramaData, styles = false) {
         }
     };
 
-    // Update Progress
-    video.ontimeupdate = () => {
-        const prog = document.getElementById(`prog-${index}`);
-        if (prog && video.duration) {
-            prog.value = (video.currentTime / video.duration) * 100;
+    // Ensure modal/close buttons are clickable
+    ['closeModalMobile', 'closeModalDesktop', 'closeVideo', 'closeImmersive'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.pointerEvents = 'auto';
+            el.style.zIndex = 60;
         }
-        // Force hide check during playback to catch edge cases
-        if (!video.paused && !slide.classList.contains('meta-hidden') && !interactionLocked) {
-            // Only if playing for > 1s
-            if (video.currentTime > 1) {
-                slide.classList.add('meta-hidden');
-            }
-        }
-    };
+    });
 
-    // Handle Intersection (Pause off-screen videos)
-    // We should implement an IntersectionObserver for the feed
+    // Handle Intersection (Pause off-screen videos) - Handled globally in openImmersivePlayer
 }
 
 function closeImmersivePlayer() {
     const playerContainer = document.getElementById('immersivePlayer');
     playerContainer.classList.add('hidden');
+    // Show Top Nav back when closing (in case it was hidden) - though closing hides the container anyway
+    const topNav = document.getElementById('immersiveTopNav');
+    if (topNav) topNav.classList.remove('opacity-0');
 
-    // Clear saved state so user doesn't jump back in on refresh if they explicitly closed it
-    localStorage.removeItem('lastDramaId');
-    localStorage.removeItem('lastEpIndex');
-
-    // Pause all videos
+    if (observer) observer.disconnect();
     document.querySelectorAll('#immersiveFeed video').forEach(v => {
         v.pause();
         v.src = ""; // Clear source to save memory

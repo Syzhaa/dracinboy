@@ -197,16 +197,13 @@
     <div id="immersivePlayer" class="fixed inset-0 z-[70] bg-black hidden font-sans">
         <div id="immersiveFeed"
             class="w-full h-full overflow-y-scroll snap-y snap-mandatory hide-scrollbar relative bg-black"></div>
-        <div class="absolute top-0 left-0 w-full z-20 pt-12 px-5 flex justify-between items-center pointer-events-none">
+        <div class="absolute top-0 left-0 w-full z-20 pt-12 px-5 flex justify-between items-center pointer-events-none transition-opacity duration-300"
+            id="immersiveTopNav">
             <button id="closeImmersive"
-                class="text-white hover:scale-110 active:scale-95 transition-transform pointer-events-auto p-2 -ml-2">
-                <span class="material-symbols-rounded text-3xl drop-shadow-md">arrow_back_ios_new</span>
+                class="text-white hover:scale-110 active:scale-95 transition-transform pointer-events-auto p-2 -ml-2 filter drop-shadow-md">
+                <span class="material-symbols-rounded text-3xl">arrow_back_ios_new</span>
             </button>
-            <div
-                class="flex bg-black/40 backdrop-blur-xl rounded-full px-5 py-1.5 border border-white/10 shadow-lg pointer-events-auto">
-                <span class="text-xs font-semibold tracking-wide text-white/90">Sedang Menonton</span>
-            </div>
-            <div class="w-8"></div>
+            <!-- Removed Title for Cleaner UI -->
         </div>
     </div>
 
