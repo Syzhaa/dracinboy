@@ -239,14 +239,35 @@ function updateNavUI(type) {
         }
     });
 
-    // Sidebar Active State
+    // Sidebar & Mobile Nav Active State
     document.querySelectorAll('[data-target]').forEach(link => {
-        link.classList.remove('nav-item-active');
-        link.classList.add('nav-item-inactive');
+        const isMobile = link.closest('.md\\:hidden'); // Identify mobile nav items
 
-        if (link.dataset.target === type || (type === 'featured' && link.dataset.target === 'home')) {
-            link.classList.remove('nav-item-inactive');
-            link.classList.add('nav-item-active');
+        if (isMobile) {
+            // Mobile Nav Styling
+            // Reset to inactive first
+            link.className = 'flex flex-col items-center gap-1 transition-colors nav-btn p-1';
+
+            if (link.dataset.target === type || (type === 'featured' && link.dataset.target === 'home')) {
+                // Active: Primary Color + Icon Filled
+                link.classList.add('text-primary');
+                const icon = link.querySelector('.material-symbols-rounded');
+                if (icon) icon.classList.add('icon-filled');
+            } else {
+                // Inactive: Muted Color
+                link.classList.add('text-light-muted', 'dark:text-dark-muted', 'hover:text-primary');
+                const icon = link.querySelector('.material-symbols-rounded');
+                if (icon) icon.classList.remove('icon-filled');
+            }
+        } else {
+            // Desktop Sidebar Styling
+            link.classList.remove('nav-item-active');
+            link.classList.add('nav-item-inactive');
+
+            if (link.dataset.target === type || (type === 'featured' && link.dataset.target === 'home')) {
+                link.classList.remove('nav-item-inactive');
+                link.classList.add('nav-item-active');
+            }
         }
     });
 
@@ -567,7 +588,7 @@ function renderSlide(episode, index, dramaData, styles = false) {
                             ${episode.title}
                         </p>
                         <div class="flex items-center gap-2 mt-4 text-sm text-white/60">
-                            <span class="material-symbols-outlined !text-lg">music_note</span>
+                            <span class="material-symbols-rounded !text-lg">music_note</span>
                             <span class="truncate">Original Sound - DramaShort</span>
                         </div>
                     </div>
@@ -677,7 +698,7 @@ function renderSlide(episode, index, dramaData, styles = false) {
     });
     video.addEventListener('pause', () => {
         // Show Play icon when paused
-        if (playBtn) playBtn.innerHTML = '<span class="material-symbols-outlined text-3xl">play_arrow</span>';
+        if (playBtn) playBtn.innerHTML = '<span class="material-symbols-rounded text-3xl icon-filled">play_arrow</span>';
         slide.classList.remove('meta-hidden');
     });
 
