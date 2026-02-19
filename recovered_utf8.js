@@ -1,5 +1,5 @@
-const axios = require('axios');
-const fs = require('fs').promises;
+﻿const axios = require('axios');
+const fs = require('fs');
 const crypto = require('crypto');
 const { getNewToken, getSignature, agent } = require('./EnvielToken');
 const API_BASE = 'https://sapi.dramaboxdb.com';
@@ -29,40 +29,30 @@ const buildHeaders = (sess, token, sn, length, lang = 'in') => ({
     "accept-encoding": "gzip", "user-agent": "okhttp/4.10.0"
 });
 
-async function fileExists(path) {
-    try {
-        await fs.access(path);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-async function loadSession() {
+function loadSession() {
     if (memorySession) return memorySession;
     try {
-        if (await fileExists(SESSION_FILE)) {
-            const data = await fs.readFile(SESSION_FILE, 'utf8');
-            memorySession = JSON.parse(data);
+        if (fs.existsSync(SESSION_FILE)) {
+            memorySession = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
             return memorySession;
         }
     } catch (e) { /* ignore */ }
     return null;
 }
 
-async function saveSession(data) {
+function saveSession(data) {
     memorySession = data;
     try {
-        await fs.writeFile(SESSION_FILE, JSON.stringify(data, null, 2));
+        fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2));
     } catch (e) { /* ignore */ }
 }
 
 async function getOrInitSession() {
-    let sessData = await loadSession();
+    let sessData = loadSession();
     if (sessData) return { status: 'success', data: sessData, source: 'cache' };
-
+    
     const res = await getNewToken();
-    if (res.status === 'success') await saveSession(res.data);
+    if (res.status === 'success') saveSession(res.data);
     return res;
 }
 
@@ -82,7 +72,7 @@ async function apiRequest(endpoint, body, sessionData, lang = 'in') {
     const timestamp = Date.now().toString();
     const bodyStr = JSON.stringify(body);
     const sn = getSignature(timestamp, bodyStr, sessionData.deviceId, sessionData.androidId, sessionData.token);
-
+    
     return axios.post(`${API_BASE}${endpoint}`, bodyStr, {
         params: { timestamp },
         headers: buildHeaders(sessionData, sessionData.token, sn, Buffer.byteLength(bodyStr), lang),
@@ -101,7 +91,7 @@ async function withAutoRetry(endpoint, body, processor, lang = 'in') {
         if (!res.data.success && (res.data.status == 12 || res.data.message?.includes("Denied"))) {
             const newSess = await getNewToken();
             if (newSess.status === 'success') {
-                await saveSession(newSess.data);
+                saveSession(newSess.data);
                 d = newSess.data;
                 res = await apiRequest(endpoint, body, d, lang);
             } else {
@@ -185,7 +175,7 @@ async function getIndoDubbedDrama(pageNo = 1, pageSize = 100) {
         { type: 4, value: "" },
         { type: 5, value: "1" }
     ];
-
+    
     return withAutoRetry('/drama-box/he001/classify', {
         typeList, showLabels: false, pageNo, pageSize
     }, (data) => {
@@ -199,10 +189,10 @@ async function getAllDramas(pageNo = 1, pageSize = 100, lang = 'in') {
         typeList: [], showLabels: false, pageNo, pageSize
     }, (data) => {
         const list = data.classifyBookList?.records || [];
-        return {
-            status: "success",
-            data: list.map(processBookData),
-            total: data.classifyBookList?.total || 0
+        return { 
+            status: "success", 
+            data: list.map(processBookData), 
+            total: data.classifyBookList?.total || 0 
         };
     }, lang);
 }
@@ -210,11 +200,11 @@ async function getAllDramas(pageNo = 1, pageSize = 100, lang = 'in') {
 async function fetchAllDramas(maxPages = 20, lang = 'in') {
     const allDramas = [];
     const seenIds = new Set();
-
+    
     for (let page = 1; page <= maxPages; page++) {
         const result = await getAllDramas(page, 100, lang);
         if (result.status !== 'success' || !result.data?.length) break;
-
+        
         let added = 0;
         for (const drama of result.data) {
             if (!seenIds.has(drama.bookId)) {
@@ -223,11 +213,11 @@ async function fetchAllDramas(maxPages = 20, lang = 'in') {
                 added++;
             }
         }
-
+        
         if (added === 0) break;
         await delay(300);
     }
-
+    
     return { status: 'success', total: allDramas.length, data: allDramas };
 }
 
@@ -235,14 +225,14 @@ async function fetchAllDramasMultiLang(maxPagesPerLang = 20) {
     const allDramas = [];
     const seenIds = new Set();
     const stats = {};
-
+    
     for (const lang of SUPPORTED_LANGUAGES) {
         let langCount = 0;
-
+        
         for (let page = 1; page <= maxPagesPerLang; page++) {
             const result = await getAllDramas(page, 100, lang);
             if (result.status !== 'success' || !result.data?.length) break;
-
+            
             let added = 0;
             for (const drama of result.data) {
                 if (!seenIds.has(drama.bookId)) {
@@ -252,19 +242,19 @@ async function fetchAllDramasMultiLang(maxPagesPerLang = 20) {
                     langCount++;
                 }
             }
-
+            
             if (added === 0) break;
             await delay(200);
         }
-
+        
         stats[lang] = langCount;
     }
-
-    return {
-        status: 'success',
-        total: allDramas.length,
+    
+    return { 
+        status: 'success', 
+        total: allDramas.length, 
         stats,
-        data: allDramas
+        data: allDramas 
     };
 }
 
@@ -291,7 +281,7 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
 
     const processedIds = new Set();
     const episodeList = [];
-
+    
     let apiIndex = -1;
     let keepRunning = true;
     let startUpKey = crypto.randomUUID();
@@ -308,7 +298,7 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
         const reqIndex = (apiIndex < 0) ? 0 : apiIndex;
         const body = JSON.stringify({
             boundaryIndex: reqIndex, comingPlaySectionId: -1, index: reqIndex,
-            currencyPlaySource: "discover_175_rec",
+            currencyPlaySource: "discover_175_rec", 
             currencyPlaySourceName: "首页发现_Untukmu_推荐列表",
             preLoad: false, loadDirection: 0, startUpKey, bookId,
             pageSize: 100
@@ -321,10 +311,10 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
             const res = await axios.post(
                 `${API_BASE}/drama-box/chapterv2/batch/load`,
                 body,
-                {
-                    params: { timestamp: ts },
-                    headers: buildHeaders(d, d.token, sn, Buffer.byteLength(body)),
-                    httpsAgent: agent
+                { 
+                    params: { timestamp: ts }, 
+                    headers: buildHeaders(d, d.token, sn, Buffer.byteLength(body)), 
+                    httpsAgent: agent 
                 }
             );
 
@@ -348,13 +338,13 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
                     if (ch.chapterIndex > maxIdx) maxIdx = ch.chapterIndex;
                     if (!processedIds.has(ch.chapterIndex)) {
                         processedIds.add(ch.chapterIndex);
-
+                        
                         let url = ch.cdnList?.[0]?.videoPathList?.[0]?.videoPath || ch.videoUrl;
                         if (url) {
-                            episodeList.push({
-                                index: ch.chapterIndex,
-                                title: `Ep ${ch.chapterIndex + 1}`,
-                                url
+                            episodeList.push({ 
+                                index: ch.chapterIndex, 
+                                title: `Ep ${ch.chapterIndex + 1}`, 
+                                url 
                             });
                             added++;
                         }
@@ -377,7 +367,7 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
                         if (episodeList.length === 0 && !hasRefreshedToken) {
                             const newSess = await getNewToken();
                             if (newSess.status === 'success') {
-                                await saveSession(newSess.data);
+                                saveSession(newSess.data);
                                 d = newSess.data;
                                 startUpKey = crypto.randomUUID();
                                 hasRefreshedToken = true;
@@ -396,7 +386,7 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
                 if (msg.includes("拒绝") || msg.includes("Denied") || res.data.status == 12) {
                     const newSess = await getNewToken();
                     if (newSess.status === 'success') {
-                        await saveSession(newSess.data);
+                        saveSession(newSess.data);
                         d = newSess.data;
                         startUpKey = crypto.randomUUID();
                         await delay(100);
@@ -410,13 +400,11 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
         } catch (e) {
             if (!hasRefreshedToken && (e.response?.status === 403 || e.message.includes('403'))) {
                 memorySession = null;
-                try {
-                    await fs.unlink(SESSION_FILE);
-                } catch (err) { /* ignore */ }
+                if (fs.existsSync(SESSION_FILE)) fs.unlinkSync(SESSION_FILE);
 
                 const newSess = await getNewToken();
                 if (newSess.status === 'success') {
-                    await saveSession(newSess.data);
+                    saveSession(newSess.data);
                     d = newSess.data;
                     startUpKey = crypto.randomUUID();
                     hasRefreshedToken = true;
@@ -432,18 +420,18 @@ async function scrapeEpisodes(bookId, expectedTotal = 0) {
     return { status: "success", total: episodeList.length, metadata, data: episodeList };
 }
 
-module.exports = {
-    getDramaList,
-    getLatestDrama,
-    getRankDrama,
-    getChannelDrama,
-    getIndoDubbedDrama,
+module.exports = { 
+    getDramaList, 
+    getLatestDrama, 
+    getRankDrama, 
+    getChannelDrama, 
+    getIndoDubbedDrama, 
     getAllDramas,
     fetchAllDramas,
     fetchAllDramasMultiLang,
     SUPPORTED_LANGUAGES,
-    scrapeEpisodes,
-    searchDrama,
-    searchSuggest,
-    getOrInitSession
+    scrapeEpisodes, 
+    searchDrama, 
+    searchSuggest, 
+    getOrInitSession 
 };
